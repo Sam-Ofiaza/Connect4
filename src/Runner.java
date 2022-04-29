@@ -5,19 +5,23 @@ import static java.lang.Character.isUpperCase;
 public class Runner {
     public static void main(String[] args) {
         MainSys mainSys = new MainSys();
+        mainSys.readExistingData("C:\\Users\\Sam\\Downloads\\data.txt");
         GameMgmt gamemgmt = new GameMgmt();
-        LeaderboardSys leaderboardSys = new LeaderboardSys();
+        LeaderboardSys leaderboardSys = new LeaderboardSys(mainSys.getUsers());
         FeedbackSys feedbackSys = new FeedbackSys();
+        feedbackSys.readExistingMessages("C:\\Users\\Sam\\Downloads\\messages.txt");
+
+        System.out.println("Welcome to Connect 4.\nType 'back' to go back or 'stop' to end this session at any time.");
 
         Scanner keyboard = new Scanner(System.in);
         String input;
         boolean stop = false;
-        System.out.println("Welcome to Connect 4.\nType 'back' to go back or 'stop' to end this session at any time.");
+
         while(!stop) { // MAIN MENU
             System.out.print("Sign in (s), register (r), play (p), or view leaderboard (v)? " );
             input = keyboard.next();
             while(!validMainMenuSelection(input) && !containsBackOrStop(input)) {
-                System.out.print("Please enter 's' 'r' 'p' or 'l': ");
+                System.out.print("Please enter 's' 'r' 'p' or 'v': ");
                 input = keyboard.next();
             }
             if(input.equals("stop")) {
@@ -26,16 +30,35 @@ public class Runner {
             else if(input.equals("back")) {
                 System.out.println("There is no previous page.");
             }
-            else if(input.equals("s")) { // SIGN IN
-                boolean invalid = true;
+
+            if(input.equals("s")) { // SIGN IN
+                boolean invalid = true, back = false;
                 User current = null;
                 while(invalid) {
                     String username, password;
                     System.out.print("Enter a username: ");
-                    username = keyboard.next();
+                    input = keyboard.next();
+                    if(input.equals("stop")) {
+                        stop = true;
+                        break;
+                    }
+                    else if(input.equals("back")) {
+                        back = true;
+                        break;
+                    }
+                    username = input;
 
                     System.out.print("Enter a password: ");
-                    password = keyboard.next();
+                    input = keyboard.next();
+                    if(input.equals("stop")) {
+                        stop = true;
+                        break;
+                    }
+                    else if(input.equals("back")) {
+                        back = true;
+                        break;
+                    }
+                    password = input;
 
                     if(!mainSys.logUserIn(username, password))
                         System.out.println("Invalid login attempt - please try again.");
@@ -45,6 +68,9 @@ public class Runner {
                         System.out.println("Login successful. Redirecting to your homepage...");
                     }
                 }
+                if(stop || back)
+                    continue;
+
                 boolean loggedIn = true;
                 if(current instanceof Admin) {
                     while(loggedIn && !stop) { // ADMIN HOMEPAGE
@@ -58,7 +84,7 @@ public class Runner {
                             stop = true;
                         }
                         else if(input.equals("back")) {
-                            continue;
+                            break;
                         }
 
                         if(input.equals("p")) { // PLAY
@@ -75,19 +101,18 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
-                                    token = input.charAt(0);
+                                    current.setToken(input.charAt(0));
                                 }
-                                else {
-                                    token = current.getToken();
-                                }
+                                token = current.getToken();
 
                                 Player p = new Player(current.getUsername(), token);
                                 GameResult result = gamemgmt.startGame(p);
+                                leaderboardSys.update(current, result.getScore());
                                 System.out.println(result.getWinner() + " beat " + result.getLoser() + " with a score of " + result.getScore());
 
                                 System.out.print("Play again (p) or quit (q)? ");
@@ -120,7 +145,7 @@ public class Runner {
                                     stop = true;
                                 }
                                 else if(input.equals("back")) {
-                                    continue;
+                                    break;
                                 }
 
                                 if(input.equals("u")) { // CHANGE USERNAME
@@ -134,13 +159,12 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
                                     username = input;
-
 
                                     current.setUsername(username);
                                     System.out.println("Username successfully changed. Redirecting to your settings menu...");
@@ -152,6 +176,13 @@ public class Runner {
                                         System.out.print("Password doesn't match.\nTry again: ");
                                         input = keyboard.next();
                                     }
+                                    if(input.equals("stop")) {
+                                        stop = true;
+                                        break;
+                                    }
+                                    else if(input.equals("back")) {
+                                        break;
+                                    }
 
                                     String pswd1, pswd2;
                                     System.out.print("Enter a new password: ");
@@ -162,10 +193,10 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
                                     pswd1 = input;
 
@@ -190,10 +221,10 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
                                     token = input.charAt(0);
 
@@ -218,43 +249,56 @@ public class Runner {
                                     stop = true;
                                 }
                                 else if(input.equals("back")) {
-                                    continue;
+                                    break;
                                 }
 
                                 if(input.equals("a")) { // ADD USER
-                                    String username, password;
+                                    String username = null, password = null;
                                     int score = -1;
                                     char token = '\0';
-                                    System.out.print("Enter a username: ");
-                                    input = keyboard.next();
-                                    while(!validUsername(input) && !containsBackOrStop(input)) {
-                                        System.out.print("The username must be 3-20 characters long and should contain lowercase and uppercase letters, digits, and underscores only.\nEnter a username: ");
+                                    while(invalid) {
+                                        System.out.print("Enter a username: ");
                                         input = keyboard.next();
-                                    }
-                                    if(input.equals("stop")) {
-                                        stop = true;
-                                        continue;
-                                    }
-                                    else if(input.equals("back")) {
-                                        continue;
-                                    }
-                                    username = input;
+                                        while(!validUsername(input) && !containsBackOrStop(input)) {
+                                            System.out.print("The username must be 3-20 characters long and should contain lowercase and uppercase letters, digits, and underscores only.\nEnter a username: ");
+                                            input = keyboard.next();
+                                        }
+                                        if(input.equals("stop")) {
+                                            stop = true;
+                                            break;
+                                        }
+                                        else if(input.equals("back")) {
+                                            back = true;
+                                            break;
+                                        }
+                                        username = input;
 
-                                    System.out.print("Enter a password: ");
-                                    input = keyboard.next();
-                                    while(!validPassword(input) && !containsBackOrStop(input)) {
-                                        System.out.print("The password must be 6-20 characters long and should have at least one lowercase letter, one uppercase letter, one digit, and one special character.\nEnter a password: ");
+                                        System.out.print("Enter a password: ");
                                         input = keyboard.next();
+                                        while(!validPassword(input) && !containsBackOrStop(input)) {
+                                            System.out.print("The password must be 6-20 characters long and should have at least one lowercase letter, one uppercase letter, one digit, and one special character.\nEnter a password: ");
+                                            input = keyboard.next();
+                                        }
+                                        if(input.equals("stop")) {
+                                            stop = true;
+                                            break;
+                                        }
+                                        else if(input.equals("back")) {
+                                            back = true;
+                                            break;
+                                        }
+                                        password = input;
+
+                                        if(mainSys.getUser(username, password) != null) {
+                                            System.out.println("Account already exists. Try again.");
+                                        }
+                                        else {
+                                            invalid = false;
+                                        }
                                     }
-                                    if(input.equals("stop")) {
-                                        stop = true;
+
+                                    if(back || stop)
                                         continue;
-                                    }
-                                    else if(input.equals("back")) {
-                                        continue;
-                                    }
-                                    password = input;
-                                    // TODO: Check if user already exists
 
                                     User u = null;
                                     System.out.print("Would you also like to add this user's score and token? (y/n): ");
@@ -265,10 +309,10 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
 
                                     if(input.equals("y")) {
@@ -280,10 +324,10 @@ public class Runner {
                                         }
                                         if(input.equals("stop")) {
                                             stop = true;
-                                            continue;
+                                            break;
                                         }
                                         else if(input.equals("back")) {
-                                            continue;
+                                            break;
                                         }
                                         score = Integer.parseInt(input);
 
@@ -295,10 +339,10 @@ public class Runner {
                                         }
                                         if(input.equals("stop")) {
                                             stop = true;
-                                            continue;
+                                            break;
                                         }
                                         else if(input.equals("back")) {
-                                            continue;
+                                            break;
                                         }
                                         token = input.charAt(0);
 
@@ -311,10 +355,10 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
 
                                     if(input.equals("y")) {
@@ -325,6 +369,7 @@ public class Runner {
                                             u = new Admin(username, password);
                                         }
                                         mainSys.addUser(u);
+                                        leaderboardSys.addUser(u);
                                         System.out.println("New admin successfully added. Redirecting to the user settings menu...");
                                     }
                                     else if(input.equals("n")) {
@@ -335,6 +380,7 @@ public class Runner {
                                             u = new User(username, password);
                                         }
                                         mainSys.addUser(u);
+                                        leaderboardSys.addUser(u);
                                         System.out.println("New user successfully added. Redirecting to the user settings menu...");
                                     }
                                 }
@@ -347,9 +393,28 @@ public class Runner {
                                         System.out.println("Change user attributes.");
                                         while(invalid2) {
                                             System.out.print("Enter an existing username: ");
-                                            username = keyboard.next();
+                                            input = keyboard.next();
+                                            if(input.equals("stop")) {
+                                                stop = true;
+                                                break;
+                                            }
+                                            else if(input.equals("back")) {
+                                                back = true;
+                                                break;
+                                            }
+                                            username = input;
+
                                             System.out.print("Enter a password: ");
-                                            password = keyboard.next();
+                                            input = keyboard.next();
+                                            if(input.equals("stop")) {
+                                                stop = true;
+                                                break;
+                                            }
+                                            else if(input.equals("back")) {
+                                                back = true;
+                                                break;
+                                            }
+                                            password = input;
 
                                             if((u = mainSys.getUser(username, password)) == null) {
                                                 System.out.println("User not recognized, try again.");
@@ -358,6 +423,9 @@ public class Runner {
                                                 invalid2 = false;
                                             }
                                         }
+
+                                        if(back || stop)
+                                            continue;
 
                                         System.out.print("User identified.\nChange user's username (u), password (p), token (t), or score (s)? ");
                                         input = keyboard.next();
@@ -369,7 +437,7 @@ public class Runner {
                                             stop = true;
                                         }
                                         else if(input.equals("back")) {
-                                            continue;
+                                            break;
                                         }
 
                                         if(input.equals("u")) { // CHANGE USER'S USERNAME
@@ -383,10 +451,10 @@ public class Runner {
                                             }
                                             if(input.equals("stop")) {
                                                 stop = true;
-                                                continue;
+                                                break;
                                             }
                                             else if(input.equals("back")) {
-                                                continue;
+                                                break;
                                             }
                                             newUsername = input;
 
@@ -403,10 +471,10 @@ public class Runner {
                                             }
                                             if(input.equals("stop")) {
                                                 stop = true;
-                                                continue;
+                                                break;
                                             }
                                             else if(input.equals("back")) {
-                                                continue;
+                                                break;
                                             }
                                             newPassword = input;
 
@@ -423,10 +491,10 @@ public class Runner {
                                             }
                                             if(input.equals("stop")) {
                                                 stop = true;
-                                                continue;
+                                                break;
                                             }
                                             else if(input.equals("back")) {
-                                                continue;
+                                                break;
                                             }
                                             newToken = input.charAt(0);
 
@@ -443,10 +511,10 @@ public class Runner {
                                             }
                                             if(input.equals("stop")) {
                                                 stop = true;
-                                                continue;
+                                                break;
                                             }
                                             else if(input.equals("back")) {
-                                                continue;
+                                                break;
                                             }
                                             newScore = Integer.parseInt(input);
 
@@ -462,9 +530,26 @@ public class Runner {
                                     System.out.println("Remove user.");
                                     while(invalid2) {
                                         System.out.print("Enter an existing username: ");
-                                        username = keyboard.next();
+                                        input = keyboard.next();
+                                        if(input.equals("stop")) {
+                                            stop = true;
+                                            break;
+                                        }
+                                        else if(input.equals("back")) {
+                                            break;
+                                        }
+                                        username = input;
+
                                         System.out.print("Enter a password: ");
-                                        password = keyboard.next();
+                                        input = keyboard.next();
+                                        if(input.equals("stop")) {
+                                            stop = true;
+                                            break;
+                                        }
+                                        else if(input.equals("back")) {
+                                            break;
+                                        }
+                                        password = input;
 
                                         if ((u = mainSys.getUser(username, password)) == null) {
                                             System.out.println("User not recognized, try again.");
@@ -499,7 +584,7 @@ public class Runner {
                             stop = true;
                         }
                         else if(input.equals("back")) {
-                            continue;
+                            break;
                         }
 
                         if(input.equals("p")) { // PLAY
@@ -516,19 +601,18 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
-                                    token = input.charAt(0);
+                                    current.setToken(input.charAt(0));
                                 }
-                                else {
-                                    token = current.getToken();
-                                }
+                                token = current.getToken();
 
                                 Player p = new Player(current.getUsername(), token);
                                 GameResult result = gamemgmt.startGame(p);
+                                leaderboardSys.update(current, result.getScore());
                                 System.out.println(result.getWinner() + " beat " + result.getLoser() + " with a score of " + result.getScore());
 
                                 System.out.print("Play again (p) or quit (q)? ");
@@ -550,16 +634,16 @@ public class Runner {
                         }
                         else if(input.equals("s")) { // SEND FEEDBACK MESSAGE
                             System.out.print("Please send your message: ");
-                            input = keyboard.next();
+                            input = keyboard.nextLine();
                             while(!validFeedbackMsg(input) && !containsBackOrStop(input)) {
                                 System.out.print("The message must contain at least one character.\nEnter message: ");
-                                input = keyboard.next();
+                                input = keyboard.nextLine();
                             }
                             if(input.equals("stop")) {
                                 stop = true;
                             }
                             else if(input.equals("back")) {
-                                continue;
+                                break;
                             }
 
                             feedbackSys.receiveMessage(input);
@@ -578,7 +662,7 @@ public class Runner {
                                     stop = true;
                                 }
                                 else if(input.equals("back")) {
-                                    continue;
+                                    break;
                                 }
 
                                 if(input.equals("u")) { // CHANGE USERNAME
@@ -592,10 +676,10 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
                                     username = input;
 
@@ -610,6 +694,13 @@ public class Runner {
                                         System.out.print("Password doesn't match.\nTry again: ");
                                         input = keyboard.next();
                                     }
+                                    if(input.equals("stop")) {
+                                        stop = true;
+                                        break;
+                                    }
+                                    else if(input.equals("back")) {
+                                        break;
+                                    }
 
                                     String pswd1, pswd2;
                                     System.out.print("Enter a new password: ");
@@ -620,10 +711,10 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
                                     pswd1 = input;
 
@@ -648,10 +739,10 @@ public class Runner {
                                     }
                                     if(input.equals("stop")) {
                                         stop = true;
-                                        continue;
+                                        break;
                                     }
                                     else if(input.equals("back")) {
-                                        continue;
+                                        break;
                                     }
                                     token = input.charAt(0);
 
@@ -669,39 +760,55 @@ public class Runner {
                 }
             }
             else if(input.equals("r")) { // REGISTER
-                String username, password;
-                System.out.print("Enter a username: ");
-                input = keyboard.next();
-                while(!validUsername(input) && !containsBackOrStop(input)) {
-                    System.out.print("The username must be 3-20 characters long and should contain lowercase and uppercase letters, digits, and underscores only.\nEnter a username: ");
+                String username = null, password = null;
+                boolean invalid = true, back = false;
+                while(invalid) {
+                    System.out.print("Enter a username: ");
                     input = keyboard.next();
-                }
-                if(input.equals("stop")) {
-                    stop = true;
-                    continue;
-                }
-                else if(input.equals("back")) {
-                    continue;
-                }
-                username = input;
+                    while(!validUsername(input) && !containsBackOrStop(input)) {
+                        System.out.print("The username must be 3-20 characters long and should contain lowercase and uppercase letters, digits, and underscores only.\nEnter a username: ");
+                        input = keyboard.next();
+                    }
+                    if(input.equals("stop")) {
+                        stop = true;
+                        break;
+                    }
+                    else if(input.equals("back")) {
+                        back = true;
+                        break;
+                    }
+                    username = input;
 
-                System.out.print("Enter a password: ");
-                input = keyboard.next();
-                while(!validPassword(input) && !containsBackOrStop(input)) {
-                    System.out.print("The password must be 6-20 characters long and should have at least one lowercase letter, one uppercase letter, one digit, and one special character.\nEnter a password: ");
+                    System.out.print("Enter a password: ");
                     input = keyboard.next();
+                    while(!validPassword(input) && !containsBackOrStop(input)) {
+                        System.out.print("The password must be 6-20 characters long and should have at least one lowercase letter, one uppercase letter, one digit, and one special character.\nEnter a password: ");
+                        input = keyboard.next();
+                    }
+                    if(input.equals("stop")) {
+                        stop = true;
+                        break;
+                    }
+                    else if(input.equals("back")) {
+                        back = true;
+                        break;
+                    }
+                    password = input;
+
+                    if(mainSys.getUser(username, password) != null) {
+                        System.out.println("Account already exists. Try again.");
+                    }
+                    else {
+                        invalid = false;
+                    }
                 }
-                if(input.equals("stop")) {
-                    stop = true;
+
+                if(back || stop)
                     continue;
-                }
-                else if(input.equals("back")) {
-                    continue;
-                }
-                password = input;
 
                 User u = new User(username, password);
                 mainSys.addUser(u);
+                leaderboardSys.addUser(u);
                 System.out.println("Registration successful. Redirecting to the main page...");
             }
             else if(input.equals("p")) { // PLAY WHILE SIGNED OUT
@@ -717,7 +824,7 @@ public class Runner {
                     }
                     if(input.equals("stop")) {
                         stop = true;
-                        continue;
+                        break;
                     }
                     else if(input.equals("back")) {
                         break;
@@ -732,10 +839,10 @@ public class Runner {
                     }
                     if(input.equals("stop")) {
                         stop = true;
-                        continue;
+                        break;
                     }
                     else if(input.equals("back")) {
-                        continue;
+                        break;
                     }
                     token = input.charAt(0);
 
@@ -761,6 +868,9 @@ public class Runner {
                 System.out.println("Leaderboard:\n" + leaderboardSys.displayLeaderboard());
             }
         }
+
+        mainSys.saveCurrentData("C:\\Users\\Sam\\Downloads\\data.txt");
+        feedbackSys.saveCurrentMessages("C:\\Users\\Sam\\Downloads\\messages.txt");
         System.out.println("Thank you for playing Connect 4.");
     }
 

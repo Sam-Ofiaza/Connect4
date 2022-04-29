@@ -13,8 +13,8 @@ public class MainSys {
 
     public void readExistingData(String pathname) {
         try {
-            // Fill Hashtable
             File file = new File(pathname);
+            file.createNewFile(); // Creates a file if one doesn't already exist
             Scanner textInput = new Scanner(file);
             while(textInput.hasNextLine()) {
                 Scanner lineReader = new Scanner(textInput.nextLine());
@@ -44,6 +44,9 @@ public class MainSys {
         catch(FileNotFoundException e) {
             System.out.println("File at path " + pathname + " not found.");
             e.printStackTrace();
+        }
+        catch(IOException e) {
+            System.out.println("An error occurred while trying to create " + pathname + ".");
         }
     }
 
